@@ -31,6 +31,7 @@ body {
     background-color: gray;
     user-select: none;
     background-color: rgb(168, 117, 117);
+    background-image: url('images/nebula_cloud.jpg');
     background-size: cover;
 }
 
