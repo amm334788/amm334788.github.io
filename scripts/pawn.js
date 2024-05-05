@@ -6,8 +6,6 @@ function generatePawnMovements(piece, energized) {
     const b = cc[1];
     const color = piece.id; // w or b
 
-    console.log("it hits in pawn")
-
     if (energized) {
         if (color == "w") {
             coordinates = [a + String(bI + 1), a + String(bI + 2)];
@@ -41,7 +39,6 @@ function generatePawnTakingMovements(piece) {
         pawnTakingCoordinates = [columns[aI + 1] + String(bI - 1), columns[aI - 1] + String(bI - 1)]
     }
 
-    console.log(pawnTakingCoordinates + " Look at this")
     return pawnTakingCoordinates;
 }
 

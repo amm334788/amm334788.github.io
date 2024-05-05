@@ -43,16 +43,27 @@ let beingDragged;
 let draggedPieceCoordinate;
 let newCoordinates = [];
 let pawnTakingCoordinates = [];
+let checkChecking = [];
 
 let kingPlacingPositions = {"white": ["c1", "g1"], "black": ["c8", "g8"]};
 
 let whooseTurn = "w";
 
+let kingInCheck = "";
+
 function dragStart(e) {
     beingDragged = e.target;
-    draggedPieceCoordinate = e.target.parentNode.id;
-    chessLogic(beingDragged);
-    console.log(newCoordinates);
+    console.log(kingInCheck);
+    if (kingInCheck == "") {
+        draggedPieceCoordinate = e.target.parentNode.id;
+        newCoordinates = chessLogic(beingDragged);
+        hilightSquares();
+    } else if (kingInCheck == "wkic" || kingInCheck == "bkic" && beingDragged.classList.contains("king")) {
+        draggedPieceCoordinate = e.target.parentNode.id;
+        newCoordinates = chessLogic(beingDragged);
+        kingInCheck = "";
+    }
+
 }
 
 function dragOver(e) {
@@ -60,36 +71,44 @@ function dragOver(e) {
 }
 
 function chessLogic(movingPiece) {
+    var coordinates = [];
     const pieceName = movingPiece.className;
 
     if (pieceName.includes("#")) {
-        newCoordinates = generatePawnMovements(movingPiece, true);
+        coordinates = generatePawnMovements(movingPiece, true);
+        pawnTakingCoordinates = generatePawnTakingMovements(movingPiece);
+        coordinates.push(pawnTakingCoordinates);
     } 
     
     else if (pieceName.includes('pawn')) {
-        newCoordinates = generatePawnMovements(movingPiece, false);
+        coordinates = generatePawnMovements(movingPiece, false);
         pawnTakingCoordinates = generatePawnTakingMovements(movingPiece);
+        coordinates.push(pawnTakingCoordinates);
+
+        console.log(pawnTakingCoordinates);
     }
 
     else if (pieceName.includes("king")) {
-        newCoordinates = generateKingMovements(movingPiece);
+        coordinates = generateKingMovements(movingPiece);
     } 
 
     else if (pieceName.includes("bishop")) {
-        newCoordinates = generateBishopMovements(movingPiece);
+        coordinates = generateBishopMovements(movingPiece);
     }
 
     else if (pieceName.includes("rook")) {
-        newCoordinates = generateRookMovements(movingPiece);
+        coordinates = generateRookMovements(movingPiece);
     }
 
     else if (pieceName.includes("queen")) {
-        newCoordinates = generateQueenMovements(movingPiece);
+        coordinates = generateQueenMovements(movingPiece);
     }
 
     else if (pieceName.includes("knight")) {
-        newCoordinates = generateKnightMovements(movingPiece);
+        coordinates = generateKnightMovements(movingPiece);
     }
+
+    return coordinates;
 }
 
 function dragDrop(e) {
@@ -121,7 +140,7 @@ function dragDrop(e) {
                 changeTurn();
             }
     
-            else if (beingDragged.classList.contains('pawn') && droppingSquare != beingDragged && droppingSquare.id[0] != beingDragged.id[0] && pawnTakingCoordinates.includes(droppingSquare.parentNode.id)) {
+            else if ((beingDragged.classList.contains('pawn') || beingDragged.classList.contains('#')) && droppingSquare != beingDragged && droppingSquare.id[0] != beingDragged.id[0] && pawnTakingCoordinates.includes(droppingSquare.parentNode.id)) {
                 if (special_lines.includes(droppingSquare.parentNode.id)) {
                     const whatcolor = prompt("What pieces do you want?")
                     promoteTaking(beingDragged, droppingSquare, dragStart, whatcolor);
@@ -214,10 +233,17 @@ function dragDrop(e) {
             }
     
         }
-        newCoordinates = [];
 
-    }
+    } 
 
+    removehilight();
+
+    newCoordinates = [];
+    pawnTakingCoordinates = [];
+
+    checkChecking = chessLogic(beingDragged);
+
+    checkCheckingAndHilight();
 }
 
 for (let row=0; row<board_size; row++) {
@@ -256,6 +282,14 @@ for (let row=0; row<board_size; row++) {
             pieceImage.id = pieceCode[0];
 
             checkPieceType(pieceCode, pieceImage);
+
+            if (pieceCode == "bk") {
+                pieceImage.classList.add("b");
+            }
+
+            else if (pieceCode == "wk") {
+                pieceImage.classList.add("w");
+            }
             
             square.appendChild(pieceImage);
             pieceImage.addEventListener('dragstart', dragStart)
@@ -272,3 +306,83 @@ function changeTurn() {
         whooseTurn = "w";
     }
 }
+
+function hilightSquares() {
+    for (const i of getCoordinateSquares()) {
+        i.classList.add('hilight');
+    }
+}
+
+function removehilight() {
+    for (const i of getCoordinateSquares()) {
+        i.classList.remove('hilight');
+    }
+}
+
+function getCoordinateSquares () {
+    let thesquares = [];
+    for (const i of newCoordinates) {
+        if (!i.includes('undefined')) {
+            thesquares.push(document.getElementById(i));
+        }
+    }
+
+    for (const j of pawnTakingCoordinates) {
+        if (!j.includes('undefined')) {
+            thesquares.push(document.getElementById(j));
+        }
+    }
+
+    return thesquares;
+}
+
+function getWhiteKing() {
+    return document.querySelector('[class="king $ w"]') || document.querySelector('[class="king w"]');
+
+}
+
+function getBlackKing() {
+    return document.querySelector('[class="king $ b"]') || document.querySelector('[class="king b"]');
+}
+
+function checkWhiteKingCheck () {
+    const whiteKingPiece = getWhiteKing();
+    const thesquare = whiteKingPiece.parentNode.id;
+
+    if (checkChecking.includes(thesquare) && beingDragged.id != whiteKingPiece.id) {
+        whiteKingPiece.parentNode.classList.add("checkhilight");
+        kingInCheck = "wkic";
+    }
+
+    else {
+        stop;
+    }
+}
+
+function checkBlackKingCheck () {
+    const blackKingPiece = getBlackKing();
+    const thesquare = blackKingPiece.parentNode.id;
+
+    if (checkChecking.includes(thesquare) && blackKingPiece.id != beingDragged.id) {
+        blackKingPiece.parentNode.classList.add('checkhilight');
+        kingInCheck = "bkic";
+    }
+
+    else {
+        stop;
+    }
+}
+
+function checkCheckingAndHilight () {
+    checkWhiteKingCheck();
+    checkBlackKingCheck();
+}
+
+
+
+
+
+
+
+
+
